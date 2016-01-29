@@ -1,0 +1,131 @@
+<html>
+  <head>
+  </head>
+
+  <body>
+    <canvas id="leap-overlay"></canvas>
+    <div href="https://www.google.com" id="labelDiv">Go To Goole</div>
+    
+    <script src="https://js.leapmotion.com/leap-0.6.4.js"></script>
+    <script>
+var canvas = document.getElementById("leap-overlay");
+
+// fullscreen
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// create a rendering context
+var ctx = canvas.getContext("2d");
+ctx.translate(canvas.width/2,canvas.height);
+
+//setColorByFingerType
+function setColorByFingerType(fingerType) {
+  switch(fingerType) {
+    //Thumb
+    case 0:
+      ctx.fillStyle = "rgba(0,0,255,0.7)";
+    break;
+    //Index
+    case 1:
+      ctx.fillStyle = "rgba(0,255,0,0.7)";
+    break;
+    //Middle
+    case 2:
+      ctx.fillStyle = "rgba(255,0,0,0.7)";
+    break;
+    //Ring
+    case 3:
+      ctx.fillStyle = "rgba(0,255,255,0.7)";
+    break;
+    //Pinky
+    case 4:
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+    break;
+  }
+}
+
+function getAppXPosition(leapX) {
+  return (leapX)*(6000/screen.width)
+}
+
+function getAppYPosition(leapY) {
+  return (leapY+50)*(3000/screen.height)
+}
+
+function isInBox(tapX, tapY, elementID) {
+  var element = document.getElementById(elementID);
+  var elementBox = element.getBoundingClientRect();
+
+  console.log(elementBox.left);
+  console.log(" < " + tapX + " < ");
+  console.log(elementBox.right);
+  console.log('--------------------')
+  console.log(elementBox.top);
+  console.log(" < " + tapY + " < ");
+  console.log(elementBox.bottom);
+  console.log('--------------------')
+
+  if ( (tapX >= elementBox.left) && (tapX <= elementBox.right) ) {
+    if ( (tapY >= elementBox.top) && (tapY <= elementBox.bottom) ) {
+      window.location.href = element.getAttribute('href');
+    }
+  }
+}
+
+var options = {
+  enableGestures: true,
+  frameEventName: "animationFrame"
+};
+
+// listen to Leap Motion
+Leap.loop(options, function(frame) {
+  // clear last frame
+  ctx.clearRect(-canvas.width/2,-canvas.height,canvas.width,canvas.height);
+
+  // render circles based on pointable positions
+  var fingers = frame.pointables;
+  for (var i in fingers) {
+    // get the pointable's position
+    var finger = fingers[i];
+    var pos = finger.tipPosition;
+
+    // create a circle for each pointable
+    setColorByFingerType(finger.type);
+    var radius = Math.min(600/Math.abs(pos[2]),20);
+    ctx.beginPath();
+    ctx.arc(getAppXPosition(pos[0])-radius/2,getAppYPosition(-pos[1])-radius/2,radius,0,2*Math.PI);
+    ctx.fill();
+  }
+
+  frame.gestures.forEach(function(gesture) {
+    if (gesture.type === 'screenTap') {
+      var tap_point = gesture.position;
+      var tappers = gesture.pointableIds;
+      tappers.forEach(function(pointableId){
+          if (pointableId%10 === 1) {
+            var tapX = getAppXPosition(tap_point[0])+(screen.width/2)-30;
+            var tapY = -(getAppYPosition(tap_point[1])-screen.height+50);
+            isInBox(tapX, tapY, "labelDiv");
+          }
+      });
+    }
+  });
+
+});
+
+    </script>
+
+    <style>
+      html, body { width: 100%; height: 100%; margin: 0; padding: 0;}
+      #leap-overlay { position: fixed; top: 0; left: 0; z-index: 3;}
+      #labelDiv {
+        background-color: #0000FF;
+        font-size: 70px;
+        position: absolute;
+        top: 280px;
+        left: 100px;
+        z-index: 1;
+      }     
+    </style>
+  </body>
+</html>
